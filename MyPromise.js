@@ -47,7 +47,9 @@ class MyPromise {
 
   registerStateEvent (state, callback) {
     if (this.state == STATE_PENDING) return this.callbackList[state].push(callback)
-    if (this.state == state) this.triggerCallback(callback)
+    if (this.state == state) {
+      setTimeout(() => this.triggerCallback(callback))
+    }
   }
 
   triggerCallback (callback) {
