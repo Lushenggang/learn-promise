@@ -70,20 +70,11 @@ class MyPromise {
           }
           try {
             value = handler(value)
+            resolve(value)
           } catch (error) {
             reject(error)
             return
           }
-          resolve(value)
-          // if (this.thenable(value)) {
-          //   value.then(res => {
-          //     resolve(res)
-          //   }, error => {
-          //     reject(error)
-          //   })
-          // } else {
-          //   resolve(value)
-          // }
         }
       }
       this.registerStateEvent(STATE_FULFILLED, getHandler(onFulfilled))
