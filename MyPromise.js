@@ -58,7 +58,6 @@ class MyPromise {
 
   then (onFullfilled, onRejected) {
     return new MyPromise((resolve, reject) => {
-
       const getHandler = (handler) => {
         return (value) => {
           handler = typeof handler == 'function' && handler
@@ -66,7 +65,12 @@ class MyPromise {
             this.state == STATE_RESOLVED ? resolve(value) : reject(value)
             return
           }
-          value = handler(value)
+          try {
+            value = handler(value)
+          } catch (error) {
+            reject(error)
+            return
+          }
           if (this.thenable(value)) {
             value.then(res => {
               resolve(res)
@@ -137,14 +141,4 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 //   return error
 // })
 
-Promise.reject(1).catch(error => Promise.reject(2)).catch(res => {
-  console.log(res)
-})
-
-MyPromise.reject(1).catch(error => MyPromise.reject(2)).catch(res => {
-  console.log(res)
-})
-
-// MyPromise.reject(1).catch(error => 2).then(res => {
-//   console.log(res)
-// })
+Promise.resolve(1).catch(error => 2).then(res => console.log(res))
