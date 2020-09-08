@@ -4,7 +4,7 @@ const STATE_REJECTED = 'rejected'
 
 class MyPromise {
   constructor (resolver) {
-    if (typeof resolver != 'function') {
+    if (!this.isFunction(resolver)) {
       throw new Error(`Promise resolver ${resolver} is not a function`)
     }
     this.state = STATE_PENDING
@@ -62,7 +62,7 @@ class MyPromise {
     return new MyPromise((resolve, reject) => {
       const getHandler = (handler) => {
         return (value) => {
-          handler = typeof handler == 'function' && handler
+          handler = this.isFunction(handler) && handler
           if (!handler) { // 没有处理函数则继承当前promise的状态和值
             this.state == STATE_FULFILLED ? resolve(value) : reject(value)
             return
@@ -85,29 +85,46 @@ class MyPromise {
     return this.then(undefined, onRejected)
   }
 
-  thenable (obj) {
-    return typeof obj == 'object' && typeof obj.then == 'function'
+  finally (callback) {
+    return this.then(callback, callback)
   }
 
-}
+  isFunction (obj) {
+    return typeof obj == 'function'
+  }
 
-MyPromise.resolve = value => new MyPromise((resolve, reject) => resolve(value))
+  isObject (obj) {
+    return typeof obj == 'object'
+  }
 
-MyPromise.reject = value => new MyPromise((resolve, reject) => reject(value))
+  thenable (obj) {
+    return (this.isObject(obj) || this.isFunction(obj) ) && this.isFunction(obj.then)
+  }
 
-MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
-  const resultList = [], length = promiseList.length
-  let fulfilled = 0
-  for (let i = 0; i < length; i++) {
-    promiseList[i].then(res => {
-      resultList[i] = res
-      fulfilled++
-      if (fulfilled == length) resolve(resultList)
-    }, error => {
-      reject(error)
+  static resolve (value) {
+    return new MyPromise((resolve, reject) => resolve(value))
+  }
+
+  static reject (value) {
+    return new MyPromise((resolve, reject) => reject(value))
+  }
+  
+  static all (promiseList) {
+    return new MyPromise((resolve, reject) => {
+      const resultList = [], length = promiseList.length
+      let fulfilled = 0
+      for (let i = 0; i < length; i++) {
+        promiseList[i].then(res => {
+          resultList[i] = res
+          fulfilled++
+          if (fulfilled == length) resolve(resultList)
+        }, error => {
+          reject(error)
+        })
+      }
     })
   }
-})
+}
 // new MyPromise((resolve, reject) => {
 //   resolve('1')
 // }).then(res => {
@@ -117,7 +134,7 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 //   console.log(error)
 // })
 
-// new Promise((resolve, reject) => {
+// new MyPromise((resolve, reject) => {
 //   resolve(Promise.reject('a'))
 // }).then(res => {
 //   console.log(res, 'fulfilled 1')
@@ -139,8 +156,10 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 
 // var a = MyPromise.resolve().then(() => a, () => 2)
 
-Promise.resolve(1).then(() => ({ a: 1, then: () => 2 })).then(res => {
-  console.log(res)
-})
+// Promise.resolve(1).then(() => ({ a: 1, then: () => 2 })).then(res => {
+//   console.log(res)
+// })
 
 // console.log(MyPromise.resolve(1))
+
+// MyPromise.all([MyPromise.resolve(1), MyPromise.resolve(2)]).then(res => console.log(res))
