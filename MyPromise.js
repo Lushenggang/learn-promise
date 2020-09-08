@@ -1,6 +1,6 @@
-const STATE_PENDING = 1
-const STATE_RESOLVED = 2
-const STATE_REJECTED = 3
+const STATE_PENDING = 'pending'
+const STATE_FULFILLED = 'fulfilled'
+const STATE_REJECTED = 'rejected'
 
 class MyPromise {
   constructor (resolver) {
@@ -11,12 +11,12 @@ class MyPromise {
     this.value = null
     this.callbackList = {
       [STATE_REJECTED]: [],
-      [STATE_RESOLVED]: []
+      [STATE_FULFILLED]: []
     }
     this.resolveList = []
 
     resolver((value) => {
-      this.changeState(STATE_RESOLVED, value)
+      this.changeState(STATE_FULFILLED, value)
     }, (value) => {
       this.changeState(STATE_REJECTED, value)
     })
@@ -24,9 +24,12 @@ class MyPromise {
 
   changeState (state, value) {
     if (this.state != STATE_PENDING) return
-    if (state == STATE_RESOLVED && this.thenable(value)) {
+    if (value == this) {
+      throw new Error('Chaining cycle detected for promise')
+    }
+    if (state == STATE_FULFILLED && this.thenable(value)) {
       value.then(res => {
-        this.changeState(STATE_RESOLVED, res)
+        this.changeState(STATE_FULFILLED, res)
       }, error => {
         this.changeState(STATE_REJECTED, error)
       })
@@ -56,13 +59,13 @@ class MyPromise {
     callback.call(undefined, this.value)
   }
 
-  then (onFullfilled, onRejected) {
+  then (onFulfilled, onRejected) {
     return new MyPromise((resolve, reject) => {
       const getHandler = (handler) => {
         return (value) => {
           handler = typeof handler == 'function' && handler
           if (!handler) { // 没有处理函数则继承当前promise的状态和值
-            this.state == STATE_RESOLVED ? resolve(value) : reject(value)
+            this.state == STATE_FULFILLED ? resolve(value) : reject(value)
             return
           }
           try {
@@ -71,18 +74,19 @@ class MyPromise {
             reject(error)
             return
           }
-          if (this.thenable(value)) {
-            value.then(res => {
-              resolve(res)
-            }, error => {
-              reject(error)
-            })
-          } else {
-            resolve(value)
-          }
+          resolve(value)
+          // if (this.thenable(value)) {
+          //   value.then(res => {
+          //     resolve(res)
+          //   }, error => {
+          //     reject(error)
+          //   })
+          // } else {
+          //   resolve(value)
+          // }
         }
       }
-      this.registerStateEvent(STATE_RESOLVED, getHandler(onFullfilled))
+      this.registerStateEvent(STATE_FULFILLED, getHandler(onFulfilled))
       this.registerStateEvent(STATE_REJECTED, getHandler(onRejected))
     })
   }
@@ -103,12 +107,12 @@ MyPromise.reject = value => new MyPromise((resolve, reject) => reject(value))
 
 MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
   const resultList = [], length = promiseList.length
-  let fullfilled = 0
+  let fulfilled = 0
   for (let i = 0; i < length; i++) {
     promiseList[i].then(res => {
       resultList[i] = res
-      fullfilled++
-      if (fullfilled == length) resolve(resultList)
+      fulfilled++
+      if (fulfilled == length) resolve(resultList)
     }, error => {
       reject(error)
     })
@@ -126,19 +130,23 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 // new Promise((resolve, reject) => {
 //   resolve(Promise.reject('a'))
 // }).then(res => {
-//   console.log(res, 'fullfilled 1')
+//   console.log(res, 'fulfilled 1')
 // }, error => {
 //   console.log(error, 'rejected 1')
 //   return error
 // })
 
-// new Promise((resolve, reject) => {
-//   reject(Promise.resolve('a'))
+// new MyPromise((resolve, reject) => {
+//   reject(MyPromise.resolve('a'))
 // }).then(res => {
-//   console.log(res, 'fullfilled 2')
+//   console.log(res, 'fulfilled 2')
 // }, error => {
 //   console.log(error, 'rejected 2')
 //   return error
 // })
 
-Promise.resolve(1).catch(error => 2).then(res => console.log(res))
+// Promise.resolve(1).catch(error => 2).then(res => console.log(res))
+
+// var a = MyPromise.resolve().then(() => a, () => 2)
+
+console.log(MyPromise.resolve(1))
