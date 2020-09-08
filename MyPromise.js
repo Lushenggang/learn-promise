@@ -58,10 +58,15 @@ class MyPromise {
 
   then (onFullfilled, onRejected) {
     return new MyPromise((resolve, reject) => {
+
       const getHandler = (handler) => {
         return (value) => {
           handler = typeof handler == 'function' && handler
-          value = handler ? handler(value) : value
+          if (!handler) { // 没有处理函数则继承当前promise的状态和值
+            this.state == STATE_RESOLVED ? resolve(value) : reject(value)
+            return
+          }
+          value = handler(value)
           if (this.thenable(value)) {
             value.then(res => {
               resolve(res)
@@ -132,8 +137,14 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 //   return error
 // })
 
-MyPromise.resolve(1).then(res => {
-  return MyPromise.reject(2)
-}).catch(error => {
-  console.log(error, 2)
+Promise.reject(1).catch(error => Promise.reject(2)).catch(res => {
+  console.log(res)
 })
+
+MyPromise.reject(1).catch(error => MyPromise.reject(2)).catch(res => {
+  console.log(res)
+})
+
+// MyPromise.reject(1).catch(error => 2).then(res => {
+//   console.log(res)
+// })
