@@ -13,7 +13,6 @@ class MyPromise {
       [STATE_REJECTED]: [],
       [STATE_FULFILLED]: []
     }
-    this.resolveList = []
 
     resolver((value) => {
       this.changeState(STATE_FULFILLED, value)
@@ -140,4 +139,8 @@ MyPromise.all = promiseList => new MyPromise((resolve, reject) => {
 
 // var a = MyPromise.resolve().then(() => a, () => 2)
 
-console.log(MyPromise.resolve(1))
+Promise.resolve(1).then(() => ({ a: 1, then: () => 2 })).then(res => {
+  console.log(res)
+})
+
+// console.log(MyPromise.resolve(1))
